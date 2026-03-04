@@ -1,0 +1,557 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Audio Party</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS for WebRTC Peer-to-Peer Networking -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7); /* Slate 800 with opacity */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Pulse Animation for active audio */
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            80% { transform: scale(1.5); opacity: 0; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* Custom Scrollbar for Party List */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-md glass-panel rounded-2xl p-6 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- Header -->
+        <div class="text-center mb-8 shrink-0">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 mb-4 relative">
+                <i data-lucide="radio" class="w-8 h-8 relative z-10"></i>
+                <div id="activity-pulse" class="absolute inset-0 rounded-full bg-blue-500 pulse-ring hidden"></div>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">LAN Audio Party</h1>
+            <p class="text-slate-400 text-sm mt-1">Broadcast audio to multiple devices</p>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="flex p-1 bg-slate-900/50 rounded-lg mb-6 shrink-0">
+            <button id="tab-host" onclick="switchTab('host')" class="flex-1 py-2 text-sm font-medium rounded-md bg-blue-600 text-white transition-all shadow-md">
+                Broadcast (Host)
+            </button>
+            <button id="tab-speaker" onclick="switchTab('speaker')" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all">
+                Join Party (Listen)
+            </button>
+        </div>
+
+        <!-- Host View -->
+        <div id="view-host" class="space-y-6 overflow-y-auto flex-1 pb-2">
+            
+            <div id="host-setup-area" class="space-y-6">
+                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                    <h3 class="font-medium text-slate-200 mb-2 flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Instructions
+                    </h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Click "Start Broadcast". In the browser prompt, select any screen or tab, but you <strong class="text-white">MUST check the "Share system audio" checkbox</strong>. Multiple devices can join your room.
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="startHosting()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/50">
+                        <i data-lucide="mic" class="w-5 h-5"></i> Start Broadcast
+                    </button>
+                </div>
+            </div>
+
+            <!-- Host Active Area (Hidden initially) -->
+            <div id="host-active-area" class="hidden space-y-4 flex flex-col h-full">
+                <div class="text-center p-4 bg-slate-900/80 rounded-xl border border-slate-700 relative shrink-0">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Your Party Room ID</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <span id="host-room-id" class="text-3xl font-mono font-bold text-blue-400 tracking-widest">----</span>
+                        <button onclick="copyRoomId()" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copy ID">
+                            <i data-lucide="copy" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-emerald-400 mt-2 flex items-center justify-center gap-1">
+                        <i data-lucide="check-circle" class="w-3 h-3"></i> Broadcasting Live
+                    </p>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 flex-1 flex flex-col overflow-hidden">
+                    <div class="flex justify-between items-center mb-3 shrink-0">
+                        <span class="text-sm font-medium text-slate-300">Party Members</span>
+                        <span id="connection-count" class="bg-blue-600/30 text-blue-400 text-xs py-1 px-3 rounded-full font-bold">0</span>
+                    </div>
+                    <!-- Party List -->
+                    <ul id="client-list" class="space-y-2 text-sm text-slate-400 overflow-y-auto flex-1 pr-1">
+                        <li class="text-center italic text-slate-500 py-4">Waiting for friends to join...</li>
+                    </ul>
+                </div>
+                
+                <button onclick="stopHosting()" class="w-full py-3 mt-2 shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl font-semibold transition-colors">
+                    End Party
+                </button>
+            </div>
+        </div>
+
+        <!-- Speaker View -->
+        <div id="view-speaker" class="hidden space-y-6 overflow-y-auto flex-1 pb-2">
+            <div id="speaker-setup-area" class="space-y-4">
+                
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300 ml-1">Your Name</label>
+                    <input type="text" id="join-name" placeholder="e.g. DJ Device" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300 ml-1">Party Room ID</label>
+                    <input type="text" id="join-room-id" placeholder="e.g. ABCD-1234" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-lg font-mono text-center uppercase tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 placeholder:tracking-normal">
+                </div>
+                
+                <button onclick="joinHost()" class="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/50">
+                    <i data-lucide="headphones" class="w-5 h-5"></i> Join Party
+                </button>
+            </div>
+
+            <!-- Speaker Active Area -->
+            <div id="speaker-active-area" class="hidden text-center space-y-6">
+                <div class="py-8">
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 relative mb-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                        <i data-lucide="volume-2" class="w-10 h-10 relative z-10"></i>
+                        <div class="absolute inset-0 rounded-full bg-emerald-500 pulse-ring"></div>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Listening to Party</h3>
+                    <p id="connected-host-id" class="text-slate-400 font-mono text-sm mt-1">Host ID: ----</p>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700 flex items-center gap-4">
+                    <i data-lucide="volume-x" class="w-5 h-5 text-slate-400"></i>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" class="w-full accent-blue-500" oninput="changeVolume(this.value)">
+                    <i data-lucide="volume-2" class="w-5 h-5 text-slate-400"></i>
+                </div>
+
+                <button onclick="disconnectSpeaker()" class="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl font-semibold transition-colors">
+                    Leave Party
+                </button>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div id="notification" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] border border-slate-600 z-50 whitespace-nowrap">
+            Message
+        </div>
+
+    </div>
+
+    <!-- Hidden Audio Element for Speakers -->
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Global State ---
+        let peer = null;
+        let localMediaStream = null;
+        let syntheticAudioCtx = null; // To clean up synthetic audio fallback
+        let activeParty = {}; // Object to track { name, connection, call } for multiple users
+        let currentMode = 'host'; // 'host' or 'speaker'
+        let connectionToHost = null;
+        
+        // Populate default name
+        document.getElementById('join-name').value = "Guest-" + Math.floor(Math.random() * 10000);
+
+        // --- UI Logic ---
+        function switchTab(mode) {
+            currentMode = mode;
+            const btnHost = document.getElementById('tab-host');
+            const btnSpeaker = document.getElementById('tab-speaker');
+            const viewHost = document.getElementById('view-host');
+            const viewSpeaker = document.getElementById('view-speaker');
+
+            if (mode === 'host') {
+                btnHost.className = "flex-1 py-2 text-sm font-medium rounded-md bg-blue-600 text-white transition-all shadow-md";
+                btnSpeaker.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all";
+                viewHost.classList.remove('hidden');
+                viewSpeaker.classList.add('hidden');
+            } else {
+                btnSpeaker.className = "flex-1 py-2 text-sm font-medium rounded-md bg-blue-600 text-white transition-all shadow-md";
+                btnHost.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all";
+                viewSpeaker.classList.remove('hidden');
+                viewHost.classList.add('hidden');
+            }
+        }
+
+        function showNotification(message, isError = false) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            if(isError) {
+                notif.classList.add('bg-red-500/90', 'border-red-500');
+                notif.classList.remove('bg-slate-800', 'border-slate-600');
+            } else {
+                notif.classList.remove('bg-red-500/90', 'border-red-500');
+                notif.classList.add('bg-slate-800', 'border-slate-600');
+            }
+            notif.classList.remove('opacity-0', 'translate-y-[-20px]');
+            notif.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                notif.classList.remove('opacity-100', 'translate-y-0');
+                notif.classList.add('opacity-0', 'translate-y-[-20px]');
+            }, 3000);
+        }
+
+        function generateShortId() {
+            return Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        }
+
+        function togglePulse(show) {
+            const pulse = document.getElementById('activity-pulse');
+            if(show) pulse.classList.remove('hidden');
+            else pulse.classList.add('hidden');
+        }
+
+        // --- HOST LOGIC ---
+        async function startHosting() {
+            try {
+                // 1. Capture Audio Logic with Multi-layered Fallbacks
+                try {
+                    // Try System Audio First
+                    localMediaStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { width: 1, height: 1 }, 
+                        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2 }
+                    });
+                    // Strip video to preserve bandwidth
+                    const videoTracks = localMediaStream.getVideoTracks();
+                    videoTracks.forEach(track => { track.stop(); localMediaStream.removeTrack(track); });
+                } catch (mediaErr) {
+                    console.warn("Display capture failed. Falling back to microphone.", mediaErr);
+                    showNotification("System audio blocked. Using Mic.", true);
+                    try {
+                        // Fallback to Mic
+                        localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    } catch (micErr) {
+                        console.warn("Microphone failed. Using synthetic audio tone.", micErr);
+                        showNotification("No audio devices found. Using test tone.", true);
+                        
+                        // Fallback to Synthetic Tone (so the app can still be tested)
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        syntheticAudioCtx = new AudioContext();
+                        const oscillator = syntheticAudioCtx.createOscillator();
+                        const gainNode = syntheticAudioCtx.createGain();
+                        
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(440, syntheticAudioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0.1, syntheticAudioCtx.currentTime); // Quiet tone
+                        
+                        const dest = syntheticAudioCtx.createMediaStreamDestination();
+                        oscillator.connect(gainNode);
+                        gainNode.connect(dest);
+                        oscillator.start();
+                        
+                        localMediaStream = dest.stream;
+                    }
+                }
+
+                // Verify stream has audio
+                if (localMediaStream.getAudioTracks().length === 0) {
+                    throw new Error("No audio track found. Please ensure audio is shared.");
+                }
+
+                // Listen for user closing the sharing bar natively
+                if (localMediaStream.getTracks()[0]) {
+                    localMediaStream.getTracks()[0].onended = () => stopHosting();
+                }
+
+                // 2. Initialize Peer Server
+                const roomId = generateShortId();
+                peer = new Peer(roomId, { debug: 2 });
+
+                peer.on('open', (id) => {
+                    document.getElementById('host-room-id').textContent = id;
+                    document.getElementById('host-setup-area').classList.add('hidden');
+                    document.getElementById('host-active-area').classList.remove('hidden');
+                    togglePulse(true);
+                    showNotification("Party broadcast started!");
+                });
+
+                // 3. Handle Incoming Connections from Speakers
+                peer.on('connection', (conn) => {
+                    let userAdded = false;
+
+                    // Listen for identity data from client
+                    conn.on('data', (data) => {
+                        if (data.type === 'join') {
+                            userAdded = true;
+                            const userName = data.name || `Guest-${conn.peer.substring(0,4)}`;
+                            
+                            // Call the peer with the audio stream
+                            const mediaCall = peer.call(conn.peer, localMediaStream);
+                            
+                            // Add to party state
+                            activeParty[conn.peer] = { 
+                                name: userName, 
+                                conn: conn,
+                                call: mediaCall
+                            };
+                            
+                            updateClientList();
+                            console.log(`${userName} joined the party.`);
+                        }
+                    });
+
+                    // Handle disconnections
+                    conn.on('close', () => removeClient(conn.peer));
+                    
+                    // Failsafe in case data channel doesn't send identity quickly
+                    setTimeout(() => {
+                        if (!userAdded && conn.open) {
+                            const mediaCall = peer.call(conn.peer, localMediaStream);
+                            activeParty[conn.peer] = { 
+                                name: `Anon-${conn.peer.substring(0,4)}`, 
+                                conn: conn,
+                                call: mediaCall
+                            };
+                            updateClientList();
+                        }
+                    }, 1500);
+                });
+
+                peer.on('error', (err) => {
+                    console.error("Host Peer Error:", err);
+                    showNotification("Network error occurred", true);
+                });
+
+            } catch (err) {
+                console.error("Error starting host:", err);
+                showNotification(err.message || "Failed to start broadcast.", true);
+            }
+        }
+
+        function removeClient(peerId) {
+            if(activeParty[peerId]) {
+                const userName = activeParty[peerId].name;
+                // Close the specific call if still active
+                if(activeParty[peerId].call) {
+                    activeParty[peerId].call.close();
+                }
+                delete activeParty[peerId];
+                updateClientList();
+                console.log(`${userName} left the party.`);
+            }
+        }
+
+        function stopHosting() {
+            // Close all active media calls to clients
+            Object.values(activeParty).forEach(client => {
+                if(client.call) client.call.close();
+                if(client.conn) client.conn.close();
+            });
+            activeParty = {};
+            
+            // Clean up synthetic context if it exists
+            if (syntheticAudioCtx) {
+                syntheticAudioCtx.close();
+                syntheticAudioCtx = null;
+            }
+
+            // Stop local media tracks
+            if (localMediaStream) {
+                localMediaStream.getTracks().forEach(track => track.stop());
+                localMediaStream = null;
+            }
+            
+            // Destroy peer connection
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            
+            updateClientList();
+            
+            document.getElementById('host-room-id').textContent = '----';
+            document.getElementById('host-active-area').classList.add('hidden');
+            document.getElementById('host-setup-area').classList.remove('hidden');
+            togglePulse(false);
+            showNotification("Party broadcast ended.");
+        }
+
+        function updateClientList() {
+            const keys = Object.keys(activeParty);
+            document.getElementById('connection-count').textContent = keys.length;
+            const list = document.getElementById('client-list');
+            
+            if (keys.length === 0) {
+                list.innerHTML = '<li class="text-center italic text-slate-500 py-4">Waiting for friends to join...</li>';
+                return;
+            }
+
+            // Render list of active listeners
+            list.innerHTML = keys.map((id) => {
+                const name = activeParty[id].name;
+                return `
+                <li class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/50 shadow-sm animate-fade-in">
+                    <div class="relative flex shrink-0 h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </div>
+                    <span class="font-medium text-slate-200 truncate">${name}</span>
+                    <span class="text-[10px] uppercase font-mono text-slate-500 ml-auto bg-slate-800 px-2 py-1 rounded">Connected</span>
+                </li>`;
+            }).join('');
+        }
+
+        function copyRoomId() {
+            const id = document.getElementById('host-room-id').textContent;
+            if(id === '----') return;
+            navigator.clipboard.writeText(id).then(() => {
+                showNotification("Room ID copied to clipboard!");
+            }).catch(err => {
+                const textArea = document.createElement("textarea");
+                textArea.value = id;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification("Room ID copied!");
+                } catch (err) {
+                    showNotification("Failed to copy", true);
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+
+
+        // --- SPEAKER LOGIC ---
+        function joinHost() {
+            const hostId = document.getElementById('join-room-id').value.trim().toUpperCase();
+            const myName = document.getElementById('join-name').value.trim() || "Anonymous Listener";
+            
+            if (!hostId) {
+                showNotification("Please enter a Room ID", true);
+                return;
+            }
+
+            const btn = document.querySelector('#speaker-setup-area button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i> Connecting...`;
+            lucide.createIcons();
+            btn.disabled = true;
+
+            // Initialize PeerJS for the speaker
+            peer = new Peer({ debug: 2 });
+
+            peer.on('open', (id) => {
+                // Connect to the host's data channel to signal identity
+                connectionToHost = peer.connect(hostId, { reliable: true });
+
+                connectionToHost.on('open', () => {
+                    // Send our name to the host
+                    connectionToHost.send({ type: 'join', name: myName });
+                    
+                    document.getElementById('connected-host-id').textContent = 'Host ID: ' + hostId;
+                    document.getElementById('speaker-setup-area').classList.add('hidden');
+                    document.getElementById('speaker-active-area').classList.remove('hidden');
+                    
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    showNotification("Joined Party! Waiting for audio...");
+                });
+
+                connectionToHost.on('close', () => {
+                    disconnectSpeaker();
+                    showNotification("Host ended the party.", true);
+                });
+                
+                connectionToHost.on('error', (err) => {
+                    disconnectSpeaker();
+                    showNotification("Connection lost.", true);
+                });
+            });
+
+            // Listen for the host "calling" us with the party audio stream
+            peer.on('call', (call) => {
+                // Answer the call immediately without sending any media back
+                call.answer(null);
+
+                call.on('stream', (remoteStream) => {
+                    console.log("Received party audio stream");
+                    const audioElement = document.getElementById('remote-audio');
+                    audioElement.srcObject = remoteStream;
+                    
+                    // Start playback
+                    audioElement.play().then(() => {
+                        togglePulse(true);
+                        showNotification("Party Audio is Live!");
+                    }).catch(e => {
+                        console.error("Autoplay prevented:", e);
+                        showNotification("Click anywhere to start audio", true);
+                        // Add a one-time click listener to bypass browser autoplay policies
+                        document.body.addEventListener('click', () => {
+                            audioElement.play();
+                            togglePulse(true);
+                        }, { once: true });
+                    });
+                });
+                
+                call.on('close', () => {
+                    disconnectSpeaker();
+                    showNotification("Audio stream stopped by Host.");
+                })
+            });
+
+            peer.on('error', (err) => {
+                console.error("Speaker Peer Error:", err);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showNotification("Could not find Party Room", true);
+                disconnectSpeaker();
+            });
+        }
+
+        function disconnectSpeaker() {
+            if (connectionToHost) {
+                connectionToHost.close();
+                connectionToHost = null;
+            }
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            const audioElement = document.getElementById('remote-audio');
+            audioElement.srcObject = null;
+            
+            document.getElementById('speaker-active-area').classList.add('hidden');
+            document.getElementById('speaker-setup-area').classList.remove('hidden');
+            togglePulse(false);
+        }
+
+        function changeVolume(val) {
+            document.getElementById('remote-audio').volume = val;
+        }
+
+    </script>
+</body>
+</html>
