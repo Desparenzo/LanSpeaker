@@ -1,170 +1,1261 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Audio Share</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>LAN Speaker</title>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#0b1220;
+  --panel:rgba(24,37,58,.88);
+  --panel2:#1c2a40;
+  --line:rgba(255,255,255,.11);
+  --text:#f4f7fb;
+  --muted:#9eacc0;
+  --blue:#6d8dff;
+  --green:#31c48d;
+  --red:#ff6b75;
+  --yellow:#ffd166;
+}
+* {box-sizing:border-box}
+html,body {min-height:100%}
+body {
+  margin:0;
+  padding:22px;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 15% 10%,#263d69 0,transparent 36%),
+  radial-gradient(circle at 90% 85%,#41265f 0,transparent 34%),var(--bg);
+  color:var(--text);
+  display:grid;
+  place-items:center;
+}
+button,input {font:inherit}
+button {cursor:pointer}
+button:disabled {opacity:.48;cursor:not-allowed}
+.app {width:min(100%,490px)}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  justify-content:center;
+  margin-bottom:18px;
+}
+.brand-icon {
+  width:46px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  background:linear-gradient(140deg,#7894ff,#9565df);
+  font-size:24px;
+}
+h1 {margin:0;font-size:25px}
+.subtitle {margin:4px 0 0;color:var(--muted);font-size:13px}
+.card {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:25px;
+  box-shadow:0 24px 70px #0007;
+  backdrop-filter:blur(18px);
+}
+.hidden {display:none!important}
+.intro {text-align:center;margin-bottom:22px}
+.intro h2 {margin:0 0 8px;font-size:22px}
+.intro p {color:var(--muted);line-height:1.5;font-size:14px}
+.role-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.role {
+  min-height:132px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px 12px;
+  background:var(--panel2);
+  color:var(--text);
+  text-align:left;
+}
+.role:hover {border-color:#8199ff99;background:#273a59}
+.role .emoji {display:block;font-size:29px;margin-bottom:13px}
+.role strong {display:block;font-size:15px}
+.role small {display:block;color:var(--muted);margin-top:5px}
+.topline {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:20px;
+}
+.topline h2 {margin:0;font-size:20px}
+.pill {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line);
+  background:#ffffff09;
+  color:var(--muted);
+  border-radius:100px;
+  padding:7px 11px;
+  font-size:11px;
+}
+.dot {width:7px;height:7px;border-radius:50%;background:#8794a8}
+.dot.good {background:var(--green);box-shadow:0 0 10px #31c48d99}
+.dot.bad {background:var(--red)}
+.pin-box {
+  padding:21px 16px 18px;
+  border:1px solid #8397ff42;
+  border-radius:19px;
+  background:linear-gradient(140deg,#718aff18,#a16bff12);
+  text-align:center;
+}
+.eyebrow {
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  font-weight:800;
+}
+.pin {
+  font:800 clamp(36px,11vw,48px)/1.2 monospace;
+  letter-spacing:8px;
+  color:var(--yellow);
+  margin:9px 0 13px 7px;
+}
+.pin-help {font-size:12px;color:var(--muted)}
+.row {display:flex;gap:10px;margin-top:14px}
+.btn {
+  border:0;
+  border-radius:13px;
+  padding:14px 16px;
+  font-weight:800;
+  color:#fff;
+  background:var(--blue);
+}
+.btn.full {width:100%}
+.btn.secondary {background:#ffffff12;border:1px solid var(--line);color:var(--text)}
+.btn.green {background:#14996e}
+.btn.red {background:#9e3444}
+.btn.small {padding:10px 13px;font-size:12px}
+.status {
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:13px 14px;
+  margin-top:17px;
+  background:#ffffff08;
+  border:1px solid var(--line);
+  border-radius:14px;
+  color:#d7e0ee;
+  font-size:13px;
+  line-height:1.45;
+}
+.status .dot {flex:none;margin-top:5px}
+.section {margin-top:18px}
+.section-title {font-size:13px;font-weight:800;margin-bottom:9px}
+.note {color:var(--muted);font-size:12px;line-height:1.55;margin:10px 0 0}
+.field {
+  width:100%;
+  border:1px solid #ffffff28;
+  outline:none;
+  background:#f5f7fb;
+  color:#172235;
+  border-radius:14px;
+  padding:17px 14px;
+  text-align:center;
+  font:800 30px/1.2 monospace;
+  letter-spacing:7px;
+}
+.field:focus {box-shadow:0 0 0 3px #8299ff55}
+.field::placeholder {color:#9aa6b6;letter-spacing:2px;font-size:16px}
+.options {display:grid;gap:10px;margin-top:14px}
+.check {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  color:#d2dbea;
+  font-size:12px;
+  line-height:1.45;
+}
+.check input {
+  accent-color:var(--blue);
+  width:16px;
+  height:16px;
+  margin:1px 0 0;
+}
+.audio-wrap {
+  margin-top:17px;
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#080e18a8;
+}
+audio {width:100%;height:42px}
+.volume-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:9px;
+  color:var(--muted);
+  font-size:12px;
+}
+input[type=range] {flex:1;accent-color:var(--blue)}
+.footer {
+  text-align:center;
+  color:#77869d;
+  font-size:11px;
+  margin-top:14px;
+  line-height:1.5;
+}
+.toast {
+  position:fixed;
+  left:50%;
+  bottom:22px;
+  transform:translate(-50%,20px);
+  opacity:0;
+  pointer-events:none;
+  padding:11px 16px;
+  border:1px solid var(--line);
+  border-radius:99px;
+  background:#17243a;
+  font-size:13px;
+  transition:.2s;
+}
+.toast.show {opacity:1;transform:translate(-50%,0)}
+@media(max-width:420px) {
+  body {padding:13px}
+  .card {padding:20px}
+  .role-grid {grid-template-columns:1fr}
+  .role {min-height:100px}
+}
+</style>
 </head>
-<body class="gradient-bg min-h-screen text-white flex items-center justify-center p-4 font-sans">
 
-    <div id="app" class="bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
-        <!-- Role Selection -->
-        <div id="setup-section" class="text-center">
-            <h1 class="text-2xl font-bold mb-6">Audio Share</h1>
-            <p class="mb-8 text-white/80">Is this device the Source or the Receiver?</p>
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="initPC()" class="bg-white text-indigo-600 font-bold py-4 rounded-xl hover:bg-indigo-50 transition-all active:scale-95">
-                    💻 This is my PC (Transmit)
-                </button>
-                <button onclick="initPhone()" class="bg-indigo-500 text-white font-bold py-4 rounded-xl hover:bg-indigo-400 transition-all active:scale-95 border border-indigo-400">
-                    📱 This is my Phone (Receive)
-                </button>
-            </div>
-        </div>
+<body>
+<div class="app">
 
-        <!-- PC View -->
-        <div id="pc-view" class="hidden text-center">
-            <h2 class="text-xl font-semibold mb-2">PC Mode</h2>
-            <div class="bg-black/20 p-6 rounded-xl mb-6">
-                <p class="text-sm text-white/60 mb-2">YOUR PAIRING CODE</p>
-                <div id="pc-id" class="text-4xl font-mono font-bold tracking-widest text-yellow-300">------</div>
-            </div>
-            <p id="pc-status" class="text-sm italic text-white/70">Waiting for PeerJS...</p>
-            <div id="stream-controls" class="hidden mt-6">
-                <button id="start-btn" class="bg-green-500 w-full py-3 rounded-lg font-bold hover:bg-green-400">Start Audio Capture</button>
-            </div>
-        </div>
+<header class="brand">
+  <div class="brand-icon">♫</div>
+  <div>
+    <h1>LAN Speaker</h1>
+    <p class="subtitle">Send your PC audio to your phone</p>
+  </div>
+</header>
 
-        <!-- Phone View -->
-        <div id="phone-view" class="hidden text-center">
-            <h2 class="text-xl font-semibold mb-4">Phone Mode</h2>
-            <input type="text" id="join-id" placeholder="Enter 6-digit code" class="w-full p-4 rounded-xl bg-white text-gray-900 text-center text-2xl font-mono mb-4 focus:outline-none focus:ring-4 focus:ring-indigo-300">
-            <button id="connect-btn" class="bg-indigo-500 w-full py-4 rounded-xl font-bold hover:bg-indigo-400 active:scale-95">Connect & Listen</button>
-            <p id="phone-status" class="mt-4 text-sm text-white/70">Ready to connect</p>
-        </div>
+<main class="card">
+
+<section id="home-view">
+  <div class="intro">
+    <h2>Choose this device</h2>
+    <p>One device sends audio. The other listens. Pair them with a six-digit PIN.</p>
+  </div>
+  <div class="role-grid">
+    <button class="role" id="pc-role">
+      <span class="emoji">💻</span>
+      <strong>This is my PC</strong>
+      <small>Transmit computer audio</small>
+    </button>
+    <button class="role" id="phone-role">
+      <span class="emoji">📱</span>
+      <strong>This is my phone</strong>
+      <small>Receive and play audio</small>
+    </button>
+  </div>
+</section>
+
+<section id="pc-view" class="hidden">
+  <div class="topline">
+    <h2>PC transmitter</h2>
+    <span class="pill">
+      <i id="pc-peer-dot" class="dot"></i>
+      <span id="pc-peer-label">Starting PeerJS</span>
+    </span>
+  </div>
+
+  <div class="pin-box">
+    <div class="eyebrow">Enter this PIN on your phone</div>
+    <div id="pc-pin" class="pin">------</div>
+    <div class="pin-help">Keep this page open while streaming.</div>
+    <div class="row">
+      <button id="copy-pin" class="btn secondary small" style="flex:1">Copy PIN</button>
+      <button id="new-pin" class="btn secondary small" style="flex:1">New PIN</button>
     </div>
+  </div>
 
-    <!-- Hidden Audio Element for Phone -->
-    <audio id="remote-audio" autoplay></audio>
+  <div class="section">
+    <div class="section-title">1. Start PC audio capture</div>
+    <button id="start-capture" class="btn green full">Start Audio Capture</button>
+    <p class="note">
+      Choose Entire Screen and enable Share system audio.
+      On Windows, Chrome or Edge can capture system audio this way.
+      For browser-tab audio, choose that tab and enable tab audio.
+    </p>
+  </div>
 
-    <script>
-        let peer = null;
-        let localStream = null;
-        
-        const setupSection = document.getElementById('setup-section');
-        const pcView = document.getElementById('pc-view');
-        const phoneView = document.getElementById('phone-view');
-        const pcStatus = document.getElementById('pc-status');
-        const phoneStatus = document.getElementById('phone-status');
-        const pcIdDisplay = document.getElementById('pc-id');
+  <div class="status">
+    <i id="pc-status-dot" class="dot"></i>
+    <span id="pc-status">Connecting to PeerJS…</span>
+  </div>
 
-        // Initialize PC Role
-        function initPC() {
-            setupSection.classList.add('hidden');
-            pcView.classList.remove('hidden');
-            
-            // Create a short 6-character ID
-            const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            peer = new Peer(shortId);
+  <div class="row">
+    <button id="stop-capture" class="btn red full" disabled>Stop Audio</button>
+    <button id="pc-home" class="btn secondary">Back</button>
+  </div>
+</section>
 
-            peer.on('open', (id) => {
-                pcIdDisplay.innerText = id;
-                pcStatus.innerText = "Ready. Enter this code on your phone.";
-                document.getElementById('stream-controls').classList.remove('hidden');
-            });
+<section id="phone-view" class="hidden">
+  <div class="topline">
+    <h2>Phone receiver</h2>
+    <span class="pill">
+      <i id="phone-peer-dot" class="dot"></i>
+      <span id="phone-peer-label">Starting PeerJS</span>
+    </span>
+  </div>
 
-            document.getElementById('start-btn').onclick = async () => {
-                try {
-                    // Standard display media request
-                    // 'systemAudio: "include"' is a hint for modern browsers
-                    localStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: { width: 1 }, // Video is required for getDisplayMedia but we only want audio
-                        audio: {
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false
-                        },
-                        systemAudio: "include"
-                    });
+  <div class="section" style="margin-top:0">
+    <div class="section-title">Enter the six-digit PIN shown on the PC</div>
+    <input
+      id="join-pin"
+      class="field"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      maxlength="6"
+      placeholder="000000"
+      aria-label="Six digit PIN"
+    >
+  </div>
 
-                    // Remove video track immediately if it exists to save bandwidth
-                    const videoTracks = localStream.getVideoTracks();
-                    if (videoTracks.length > 0) {
-                        videoTracks[0].stop();
-                    }
+  <div class="options">
+    <label class="check">
+      <input id="auto-reconnect" type="checkbox" checked>
+      <span><b>Auto-reconnect</b><br>Retry the audio connection whenever it drops.</span>
+    </label>
+    <label class="check">
+      <input id="keep-awake" type="checkbox">
+      <span><b>Keep screen awake</b><br>Prevents the phone screen from sleeping while this page is visible.</span>
+    </label>
+  </div>
 
-                    pcStatus.innerText = "Streaming captured audio...";
-                    document.getElementById('start-btn').innerText = "Streaming Active";
-                    document.getElementById('start-btn').disabled = true;
-                    document.getElementById('start-btn').classList.replace('bg-green-500', 'bg-gray-600');
+  <button id="connect-phone" class="btn full" style="margin-top:17px" disabled>
+    Connect & Listen
+  </button>
 
-                } catch (err) {
-                    pcStatus.innerText = "Error: " + err.message;
-                    console.error(err);
-                }
-            };
+  <div class="status">
+    <i id="phone-status-dot" class="dot"></i>
+    <span id="phone-status">Connecting to PeerJS…</span>
+  </div>
 
-            // Handle incoming calls from phone
-            peer.on('call', (call) => {
-                if (!localStream) {
-                    pcStatus.innerText = "Phone connecting, but no audio captured yet!";
-                }
-                call.answer(localStream); 
-                pcStatus.innerText = "Phone connected! Streaming...";
-            });
+  <div class="audio-wrap">
+    <div class="section-title">Audio output</div>
+    <audio id="remote-audio" controls autoplay playsinline></audio>
+    <div class="volume-row">
+      <span>Volume</span>
+      <input id="volume" type="range" min="0" max="1" step="0.01" value="1">
+      <span id="volume-value">100%</span>
+    </div>
+    <p class="note">
+      If audio does not start automatically, tap Play above.
+      Keep this page open for the most stable connection.
+    </p>
+  </div>
 
-            peer.on('error', (err) => {
-                pcStatus.innerText = "PeerJS Error: " + err.type;
-            });
+  <div class="row">
+    <button id="disconnect-phone" class="btn red full" disabled>Disconnect</button>
+    <button id="phone-home" class="btn secondary">Back</button>
+  </div>
+</section>
+
+</main>
+
+<div class="footer">
+  PeerJS Cloud signaling needs internet. Same Wi-Fi is recommended.
+  Audio travels directly peer-to-peer when possible.
+</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+const PEER_PREFIX = 'lan-speaker-';
+
+const PEER_OPTIONS = {
+  debug: 1,
+  config: {
+    iceServers: [
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'stun:stun1.l.google.com:19302'}
+    ]
+  }
+};
+
+const $ = id => document.getElementById(id);
+
+const views = {
+  home:$('home-view'),
+  pc:$('pc-view'),
+  phone:$('phone-view')
+};
+
+let mode = null;
+let peer = null;
+let peerReady = false;
+let peerReconnectTimer = null;
+let peerRebuilding = false;
+
+let activeCall = null;
+let pendingCall = null;
+let callRetryTimer = null;
+let callTimeoutTimer = null;
+
+let pcPin = '';
+let pcCapture = null;
+let pcAudioStream = null;
+
+let phoneTargetId = '';
+let phoneWantsConnection = false;
+
+let silentContext = null;
+let silentStream = null;
+let wakeLock = null;
+
+let manualStop = false;
+
+function toast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.classList.add('show');
+
+  clearTimeout(toast.timer);
+
+  toast.timer = setTimeout(() => {
+    el.classList.remove('show');
+  }, 2200);
+}
+
+function showView(name) {
+  Object.values(views).forEach(v => v.classList.add('hidden'));
+  views[name].classList.remove('hidden');
+}
+
+function setStatus(kind,message,state='neutral') {
+  const label = $(kind+'-status');
+  const dot = $(kind+'-status-dot');
+
+  if(label) label.textContent = message;
+
+  if(dot) {
+    dot.className = 'dot' +
+      (state==='good'?' good':state==='bad'?' bad':'');
+  }
+}
+
+function setPeerState(kind,message,good=false,bad=false) {
+  const label = $(kind+'-peer-label');
+  const dot = $(kind+'-peer-dot');
+
+  if(label) label.textContent = message;
+
+  if(dot) {
+    dot.className = 'dot' +
+      (good?' good':bad?' bad':'');
+  }
+}
+
+function randomPin() {
+  const n = new Uint32Array(1);
+  crypto.getRandomValues(n);
+  return String(n[0] % 1000000).padStart(6,'0');
+}
+
+function stopTracks(stream) {
+  if(stream) {
+    stream.getTracks().forEach(track => {
+      try {track.stop()} catch(_){}
+    });
+  }
+}
+
+function clearCallRetry() {
+  clearTimeout(callRetryTimer);
+  callRetryTimer = null;
+
+  clearTimeout(callTimeoutTimer);
+  callTimeoutTimer = null;
+}
+
+function closeActiveCall() {
+  clearCallRetry();
+
+  const old = activeCall;
+  activeCall = null;
+
+  if(old) {
+    try {old.close()} catch(_){}
+  }
+
+  if(mode==='phone') {
+    const audio = $('remote-audio');
+    audio.pause();
+    audio.srcObject = null;
+  }
+}
+
+function createPeer(id) {
+  if(typeof Peer==='undefined') {
+    const message = 'PeerJS could not load. Check your internet connection and reload.';
+
+    if(mode==='pc') setStatus('pc',message,'bad');
+    else setStatus('phone',message,'bad');
+
+    return;
+  }
+
+  peerReady = false;
+  peerRebuilding = false;
+
+  setPeerState(mode,'Connecting…');
+
+  try {
+    peer = id ? new Peer(id,PEER_OPTIONS) : new Peer(PEER_OPTIONS);
+  } catch(err) {
+    setStatus(mode,'Could not start PeerJS: '+err.message,'bad');
+    return;
+  }
+
+  const thisPeer = peer;
+
+  thisPeer.on('open',openedId => {
+    if(peer!==thisPeer) return;
+
+    peerReady = true;
+    setPeerState(mode,'PeerJS ready',true);
+
+    if(mode==='pc') {
+      setStatus(
+        'pc',
+        pcAudioStream
+          ? 'Ready. Audio capture is active. Connect from your phone.'
+          : 'Ready. Start audio capture, then connect from your phone.',
+        'good'
+      );
+    } else {
+      $('connect-phone').disabled = false;
+
+      setStatus(
+        'phone',
+        phoneWantsConnection
+          ? 'Signaling restored. Reconnecting…'
+          : 'Ready. Enter the PC PIN.',
+        'good'
+      );
+
+      if(phoneWantsConnection) schedulePhoneCall(250);
+    }
+  });
+
+  thisPeer.on('disconnected',() => {
+    if(peer!==thisPeer) return;
+
+    peerReady = false;
+    setPeerState(mode,'Reconnecting…',false,true);
+
+    if(mode==='pc') {
+      setStatus('pc','PeerJS signaling lost. Trying to reconnect…');
+    } else {
+      setStatus('phone','Signaling lost. Trying to reconnect…');
+    }
+
+    schedulePeerReconnect(thisPeer);
+  });
+
+  thisPeer.on('error',err => {
+    if(peer!==thisPeer) return;
+
+    console.warn('PeerJS error:',err.type,err);
+
+    if(mode==='phone' &&
+       err.type==='peer-unavailable' &&
+       phoneWantsConnection) {
+
+      const failedCall = activeCall;
+      activeCall = null;
+
+      clearTimeout(callTimeoutTimer);
+
+      if(failedCall) {
+        try {failedCall.close()} catch(_){}
+      }
+
+      setStatus('phone','PC not found yet. Retrying…');
+      schedulePhoneCall(2200);
+      return;
+    }
+
+    if(mode==='pc' && err.type==='unavailable-id') {
+      setStatus('pc','PIN collision. Generating a new PIN…');
+      setTimeout(rotatePin,500);
+      return;
+    }
+
+    const message = 'PeerJS: '+(err.type || err.message || 'connection error');
+
+    setStatus(mode,message,'bad');
+
+    if(['network','socket-error','socket-closed','server-error'].includes(err.type)) {
+      schedulePeerReconnect(thisPeer);
+    }
+
+    if(mode==='phone' && phoneWantsConnection) {
+      schedulePhoneCall(3000);
+    }
+  });
+
+  thisPeer.on('close',() => {
+    if(peer!==thisPeer || manualStop) return;
+
+    peerReady = false;
+    setPeerState(mode,'Restarting…',false,true);
+
+    setTimeout(() => rebuildPeer(),1800);
+  });
+
+  if(mode==='pc') {
+    thisPeer.on('call',handleIncomingCall);
+  }
+}
+
+function schedulePeerReconnect(targetPeer) {
+  if(peerReconnectTimer || manualStop) return;
+
+  peerReconnectTimer = setTimeout(() => {
+    peerReconnectTimer = null;
+
+    if(peer!==targetPeer || manualStop) return;
+
+    if(targetPeer.destroyed) {
+      rebuildPeer();
+
+    } else if(targetPeer.disconnected) {
+      try {
+        targetPeer.reconnect();
+      } catch(_) {
+        rebuildPeer();
+      }
+
+      setTimeout(() => {
+        if(peer!==targetPeer || peerReady || manualStop) return;
+
+        if(targetPeer.disconnected) {
+          schedulePeerReconnect(targetPeer);
         }
+      },4000);
 
-        // Initialize Phone Role
-        function initPhone() {
-            setupSection.classList.add('hidden');
-            phoneView.classList.remove('hidden');
+    } else if(!peerReady) {
+      schedulePeerReconnect(targetPeer);
+    }
+  },1800);
+}
 
-            peer = new Peer(); // Random ID for phone
+function rebuildPeer() {
+  if(peerRebuilding || manualStop) return;
 
-            document.getElementById('connect-btn').onclick = () => {
-                const targetId = document.getElementById('join-id').value.toUpperCase().trim();
-                if (!targetId) return;
+  peerRebuilding = true;
 
-                phoneStatus.innerText = "Connecting...";
-                
-                // For "Receive only", we call with an empty stream or just initiate
-                // PeerJS requires a stream to "call", so we create a dummy one or 
-                // simply wait for the PC to send tracks. 
-                // Actually, standard pattern: Phone calls PC, PC answers with stream.
-                
-                const call = peer.call(targetId, new MediaStream()); // Send empty stream
-                
-                call.on('stream', (remoteStream) => {
-                    phoneStatus.innerText = "Connected! Audio playing...";
-                    const audioEl = document.getElementById('remote-audio');
-                    audioEl.srcObject = remoteStream;
-                    
-                    // To prevent high pitch beep/feedback:
-                    // Ensure we don't have local microphone feedback
-                    audioEl.play().catch(e => {
-                        phoneStatus.innerHTML = "Tap 'Connect' again (Browser blocked autoplay)";
-                    });
-                });
+  const old = peer;
+  const oldCall = activeCall;
+  const oldPending = pendingCall;
 
-                call.on('error', (err) => {
-                    phoneStatus.innerText = "Connection failed.";
-                });
-            };
-        }
-    </script>
+  peerReady = false;
+  activeCall = null;
+  pendingCall = null;
+  peer = null;
+
+  try {if(oldCall) oldCall.close()} catch(_){}
+  try {if(oldPending) oldPending.close()} catch(_){}
+  try {if(old && !old.destroyed) old.destroy()} catch(_){}
+
+  clearTimeout(peerReconnectTimer);
+  peerReconnectTimer = null;
+
+  if(mode==='pc') {
+    createPeer(PEER_PREFIX+pcPin);
+  } else {
+    createPeer();
+  }
+}
+
+function rotatePin() {
+  if(mode!=='pc') return;
+
+  const old = peer;
+  const oldCall = activeCall;
+  const oldPending = pendingCall;
+
+  peerReady = false;
+  activeCall = null;
+  pendingCall = null;
+  peer = null;
+
+  try {if(oldCall) oldCall.close()} catch(_){}
+  try {if(oldPending) oldPending.close()} catch(_){}
+  try {if(old && !old.destroyed) old.destroy()} catch(_){}
+
+  pcPin = randomPin();
+  $('pc-pin').textContent = pcPin;
+
+  createPeer(PEER_PREFIX+pcPin);
+
+  toast('New PIN generated');
+}
+
+function startPC() {
+  manualStop = false;
+  mode = 'pc';
+
+  showView('pc');
+
+  pcPin = randomPin();
+  $('pc-pin').textContent = pcPin;
+
+  $('start-capture').disabled = false;
+  $('stop-capture').disabled = true;
+
+  createPeer(PEER_PREFIX+pcPin);
+}
+
+async function startCapture() {
+  if(!navigator.mediaDevices ||
+     !navigator.mediaDevices.getDisplayMedia) {
+
+    setStatus(
+      'pc',
+      'Audio capture unavailable. Use current Chrome or Edge over HTTPS or localhost.',
+      'bad'
+    );
+
+    return;
+  }
+
+  $('start-capture').disabled = true;
+
+  setStatus('pc','Choose a screen or tab and enable audio sharing…');
+
+  try {
+    const captured = await navigator.mediaDevices.getDisplayMedia({
+      video:true,
+      audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false
+      },
+      systemAudio:'include'
+    });
+
+    const audioTrack = captured.getAudioTracks()[0];
+
+    if(!audioTrack) {
+      stopTracks(captured);
+
+      $('start-capture').disabled = false;
+
+      setStatus(
+        'pc',
+        'No audio track was shared. Try Entire screen + Share system audio.',
+        'bad'
+      );
+
+      return;
+    }
+
+    pcCapture = captured;
+
+    pcAudioStream = new MediaStream([audioTrack]);
+
+    audioTrack.onended = () => {
+      stopCapture(false);
+      setStatus('pc','Audio capture ended. Start capture again to resume.','bad');
+    };
+
+    $('stop-capture').disabled = false;
+    $('start-capture').textContent = 'Audio Capture Active';
+
+    setStatus('pc','Audio captured. Waiting for your phone to join…','good');
+
+    if(pendingCall) {
+      answerIncomingCall(pendingCall);
+    }
+
+  } catch(err) {
+    $('start-capture').disabled = false;
+    setStatus('pc','Capture cancelled or failed: '+err.message,'bad');
+  }
+}
+
+function stopCapture(showStatus=true) {
+  if(pcCapture) stopTracks(pcCapture);
+
+  pcCapture = null;
+  pcAudioStream = null;
+
+  $('start-capture').disabled = false;
+  $('start-capture').textContent = 'Start Audio Capture';
+  $('stop-capture').disabled = true;
+
+  if(activeCall) {
+    try {activeCall.close()} catch(_){}
+    activeCall = null;
+  }
+
+  if(pendingCall) {
+    try {pendingCall.close()} catch(_){}
+    pendingCall = null;
+  }
+
+  if(showStatus) {
+    setStatus('pc','Audio capture stopped. Your PIN is still active.');
+  }
+}
+
+function handleIncomingCall(call) {
+  if(manualStop) {
+    call.close();
+    return;
+  }
+
+  if(activeCall && activeCall.open) {
+    call.close();
+    setStatus('pc','A phone is already connected.','good');
+    return;
+  }
+
+  if(!pcAudioStream) {
+    if(pendingCall) {
+      try {pendingCall.close()} catch(_){}
+    }
+
+    pendingCall = call;
+
+    setStatus('pc','Phone found. Start audio capture to begin streaming…');
+
+    call.on('close',() => {
+      if(pendingCall===call) pendingCall = null;
+    });
+
+    return;
+  }
+
+  answerIncomingCall(call);
+}
+
+function answerIncomingCall(call) {
+  if(!call || !pcAudioStream) return;
+
+  if(pendingCall===call) pendingCall = null;
+
+  if(activeCall && activeCall!==call) {
+    try {activeCall.close()} catch(_){}
+  }
+
+  activeCall = call;
+
+  try {
+    call.answer(pcAudioStream);
+
+    setStatus('pc','Phone joined. Sending PC audio…','good');
+
+  } catch(err) {
+    setStatus('pc','Could not answer the phone: '+err.message,'bad');
+    activeCall = null;
+
+    try {call.close()} catch(_){}
+  }
+
+  call.on('close',() => {
+    if(activeCall!==call) return;
+
+    activeCall = null;
+
+    if(pcAudioStream) {
+      setStatus('pc','Phone disconnected. Waiting for it to reconnect…');
+    }
+  });
+
+  call.on('error',err => {
+    if(activeCall!==call) return;
+
+    activeCall = null;
+
+    setStatus('pc','Audio connection error: '+(err.message || 'connection interrupted'),'bad');
+  });
+}
+
+async function createSilentPhoneStream() {
+  if(silentStream &&
+     silentStream.getAudioTracks().some(t=>t.readyState==='live')) {
+    return silentStream;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  if(!AudioContextClass) {
+    throw new Error('Web Audio is not supported in this browser.');
+  }
+
+  silentContext = new AudioContextClass();
+
+  if(silentContext.state==='suspended') {
+    await silentContext.resume();
+  }
+
+  const oscillator = silentContext.createOscillator();
+  const gain = silentContext.createGain();
+  const destination = silentContext.createMediaStreamDestination();
+
+  oscillator.frequency.value = 440;
+  gain.gain.value = 0;
+
+  oscillator.connect(gain);
+  gain.connect(destination);
+
+  oscillator.start();
+
+  silentStream = destination.stream;
+
+  return silentStream;
+}
+
+function startPhone() {
+  manualStop = false;
+  mode = 'phone';
+  phoneWantsConnection = false;
+
+  showView('phone');
+
+  $('connect-phone').disabled = true;
+  $('disconnect-phone').disabled = true;
+  $('join-pin').value = '';
+  $('remote-audio').srcObject = null;
+
+  createPeer();
+}
+
+async function connectPhone() {
+  const pin = $('join-pin').value.trim();
+
+  if(!/^\d{6}$/.test(pin)) {
+    setStatus('phone','Enter all six digits of the PC PIN.','bad');
+    $('join-pin').focus();
+    return;
+  }
+
+  phoneTargetId = PEER_PREFIX+pin;
+  phoneWantsConnection = true;
+
+  $('connect-phone').disabled = true;
+  $('disconnect-phone').disabled = false;
+
+  setStatus('phone','Preparing audio connection…');
+
+  try {
+    await createSilentPhoneStream();
+
+    if($('keep-awake').checked) {
+      await requestWakeLock();
+    }
+
+    schedulePhoneCall(100);
+
+  } catch(err) {
+    setStatus('phone','Could not prepare audio: '+err.message,'bad');
+
+    $('connect-phone').disabled = false;
+    $('disconnect-phone').disabled = true;
+
+    phoneWantsConnection = false;
+  }
+}
+
+function schedulePhoneCall(delay=2200) {
+  if(!phoneWantsConnection || manualStop || callRetryTimer) return;
+
+  callRetryTimer = setTimeout(() => {
+    callRetryTimer = null;
+    dialPC();
+  },delay);
+}
+
+async function dialPC() {
+  if(!phoneWantsConnection || manualStop) return;
+
+  if(!peer || !peerReady || peer.disconnected || peer.destroyed) {
+    schedulePhoneCall(2200);
+    return;
+  }
+
+  if(activeCall) return;
+
+  try {
+    await createSilentPhoneStream();
+
+    setStatus('phone','Calling PC…');
+
+    const call = peer.call(
+      phoneTargetId,
+      silentStream,
+      {metadata:{app:'lan-speaker',version:2}}
+    );
+
+    if(!call) {
+      setStatus('phone','Could not create audio call. Retrying…','bad');
+      schedulePhoneCall(2500);
+      return;
+    }
+
+    activeCall = call;
+
+    let callHasStream = false;
+
+    clearTimeout(callTimeoutTimer);
+
+    callTimeoutTimer = setTimeout(() => {
+      if(activeCall===call && !callHasStream) {
+        try {call.close()} catch(_){}
+
+        if(activeCall===call) activeCall = null;
+
+        setStatus('phone','PC did not answer yet. Retrying…');
+
+        schedulePhoneCall(1800);
+      }
+    },16000);
+
+    call.on('stream',remoteStream => {
+      if(activeCall!==call) return;
+
+      callHasStream = true;
+
+      clearTimeout(callTimeoutTimer);
+
+      const audio = $('remote-audio');
+
+      audio.srcObject = remoteStream;
+
+      remoteStream.getTracks().forEach(track => {
+        track.addEventListener('ended',() => {
+          if(activeCall===call) {
+            try {call.close()} catch(_){}
+          }
+        },{once:true});
+      });
+
+      audio.play().then(() => {
+        setStatus('phone','Connected. Playing PC audio.','good');
+      }).catch(() => {
+        setStatus('phone','Connected. Tap Play in the audio controls to hear sound.','good');
+      });
+    });
+
+    call.on('close',() => {
+      if(activeCall!==call) return;
+
+      activeCall = null;
+
+      clearTimeout(callTimeoutTimer);
+
+      $('remote-audio').pause();
+      $('remote-audio').srcObject = null;
+
+      if(phoneWantsConnection && $('auto-reconnect').checked) {
+        setStatus('phone','Audio link dropped. Reconnecting…');
+        schedulePhoneCall(1800);
+      } else {
+        setStatus('phone','Disconnected. Tap Connect to listen again.');
+      }
+    });
+
+    call.on('error',err => {
+      if(activeCall!==call) return;
+
+      activeCall = null;
+
+      clearTimeout(callTimeoutTimer);
+
+      setStatus('phone','Audio error: '+(err.message || 'connection interrupted'),'bad');
+
+      if(phoneWantsConnection && $('auto-reconnect').checked) {
+        schedulePhoneCall(2200);
+      }
+    });
+
+  } catch(err) {
+    setStatus('phone','Connection attempt failed: '+err.message,'bad');
+    schedulePhoneCall(2500);
+  }
+}
+
+async function requestWakeLock() {
+  if(!('wakeLock' in navigator)) {
+    toast('Screen wake lock is not supported here');
+    return;
+  }
+
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+
+    wakeLock.addEventListener('release',() => {
+      wakeLock = null;
+    });
+
+  } catch(err) {
+    console.warn('Wake lock:',err);
+  }
+}
+
+async function releaseWakeLock() {
+  if(wakeLock) {
+    try {await wakeLock.release()} catch(_){}
+    wakeLock = null;
+  }
+}
+
+async function disconnectPhone() {
+  phoneWantsConnection = false;
+
+  clearCallRetry();
+  closeActiveCall();
+
+  if(silentContext) {
+    try {await silentContext.close()} catch(_){}
+  }
+
+  silentContext = null;
+  silentStream = null;
+
+  await releaseWakeLock();
+
+  $('connect-phone').disabled = false;
+  $('disconnect-phone').disabled = true;
+
+  setStatus('phone','Disconnected. Enter a PIN and connect when ready.');
+}
+
+function backHome() {
+  manualStop = true;
+  phoneWantsConnection = false;
+
+  clearCallRetry();
+
+  clearTimeout(peerReconnectTimer);
+  peerReconnectTimer = null;
+
+  if(mode==='pc') {
+    stopCapture(false);
+  }
+
+  if(mode==='phone') {
+    closeActiveCall();
+
+    if(silentContext) {
+      try {silentContext.close()} catch(_){}
+    }
+
+    silentContext = null;
+    silentStream = null;
+
+    releaseWakeLock();
+  }
+
+  try {
+    if(peer && !peer.destroyed) peer.destroy();
+  } catch(_){}
+
+  peer = null;
+  peerReady = false;
+  mode = null;
+
+  showView('home');
+}
+
+/* EVENTS */
+
+$('pc-role').addEventListener('click',startPC);
+$('phone-role').addEventListener('click',startPhone);
+
+$('start-capture').addEventListener('click',startCapture);
+
+$('stop-capture').addEventListener('click',() => {
+  stopCapture(true);
+});
+
+$('copy-pin').addEventListener('click',async () => {
+  try {
+    await navigator.clipboard.writeText(pcPin);
+    toast('PIN copied');
+  } catch(_) {
+    toast('Clipboard access unavailable');
+  }
+});
+
+$('new-pin').addEventListener('click',rotatePin);
+
+$('connect-phone').addEventListener('click',connectPhone);
+$('disconnect-phone').addEventListener('click',disconnectPhone);
+
+$('pc-home').addEventListener('click',backHome);
+$('phone-home').addEventListener('click',backHome);
+
+$('join-pin').addEventListener('input',event => {
+  event.target.value = event.target.value.replace(/\D/g,'').slice(0,6);
+});
+
+$('join-pin').addEventListener('keydown',event => {
+  if(event.key==='Enter' && !$('connect-phone').disabled) {
+    connectPhone();
+  }
+});
+
+$('volume').addEventListener('input',event => {
+  const value = Number(event.target.value);
+
+  $('remote-audio').volume = value;
+
+  $('volume-value').textContent = Math.round(value*100)+'%';
+});
+
+$('keep-awake').addEventListener('change',async event => {
+  if(event.target.checked && phoneWantsConnection) {
+    await requestWakeLock();
+  } else {
+    await releaseWakeLock();
+  }
+});
+
+document.addEventListener('visibilitychange',async () => {
+  if(
+    document.visibilityState==='visible' &&
+    mode==='phone' &&
+    $('keep-awake').checked &&
+    phoneWantsConnection &&
+    !wakeLock
+  ) {
+    await requestWakeLock();
+  }
+});
+
+window.addEventListener('beforeunload',() => {
+  try {
+    if(peer && !peer.destroyed) peer.destroy();
+  } catch(_){}
+
+  stopTracks(pcCapture);
+  stopTracks(silentStream);
+});
+
+})();
+</script>
 </body>
 </html>
-
-```
